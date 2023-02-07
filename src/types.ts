@@ -25,3 +25,10 @@ export interface ImageRenderOptions extends RenderOptions {
   fullPageImage?: boolean;
   scaleImage?: number;
 }
+
+export interface PdfRenderOptions extends RenderOptions {
+  template: string;
+  pdf: 'true' | true;
+}
+
+export type AllRenderOptions = PdfRenderOptions | ImageRenderOptions;

@@ -1,21 +1,25 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as net from 'net';
-import express = require('express');
-import * as boom from '@hapi/boom';
-import morgan = require('morgan');
-import * as promClient from 'prom-client';
-import { Logger } from '../logger';
-import { Browser, createBrowser } from '../browser';
-import { ServiceConfig } from '../config';
-import { setupHttpServerMetrics } from './metrics';
-import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../types';
-import { Sanitizer } from '../sanitizer/Sanitizer';
 import * as bodyParser from 'body-parser';
-import * as multer from 'multer';
-import { isSanitizeRequest } from '../sanitizer/types';
+import * as boom from '@hapi/boom';
 import * as contentDisposition from 'content-disposition';
-import { asyncMiddleware, trustedUrlMiddleware, authTokenMiddleware } from './middlewares';
+import * as fs from 'fs';
+import * as multer from 'multer';
+import * as net from 'net';
+import * as path from 'path';
+import * as promClient from 'prom-client';
+
+import { AllRenderOptions, HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
+import { Browser, createBrowser } from '../browser';
+import { asyncMiddleware, authTokenMiddleware, trustedUrlMiddleware } from './middlewares';
+
+import { Logger } from '../logger';
+import { RenderResponse } from '../browser/browser';
+import { Sanitizer } from '../sanitizer/Sanitizer';
+import { ServiceConfig } from '../config';
+import { isSanitizeRequest } from '../sanitizer/types';
+import { setupHttpServerMetrics } from './metrics';
+
+import express = require('express');
+import morgan = require('morgan');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -138,7 +142,7 @@ export class HttpServer {
     await this.browser.start();
   }
 
-  render = async (req: express.Request<any, any, any, ImageRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
+  render = async (req: express.Request<any, any, any, AllRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
     if (!req.query.url) {
       throw boom.badRequest('Missing url parameter');
     }
@@ -149,26 +153,31 @@ export class HttpServer {
       headers['Accept-Language'] = (req.headers['Accept-Language'] as string[]).join(';');
     }
 
-    const options: ImageRenderOptions = {
-      url: req.query.url,
-      width: req.query.width,
-      height: req.query.height,
-      filePath: req.query.filePath,
-      timeout: req.query.timeout,
-      renderKey: req.query.renderKey,
-      domain: req.query.domain,
-      timezone: req.query.timezone,
-      encoding: req.query.encoding,
-      deviceScaleFactor: req.query.deviceScaleFactor,
-      headers: headers,
-    };
-
-    this.log.debug('Render request received', 'url', options.url);
-    req.on('close', (err) => {
-      this.log.debug('Connection closed', 'url', options.url, 'error', err);
-    });
-
-    const result = await this.browser.render(options);
+    let result: RenderResponse;
+    
+    if(isPdfRequest(req.query)) {
+      result = { filePath: '' }
+    }else{
+      const options: ImageRenderOptions = {
+        url: req.query.url,
+        width: req.query.width,
+        height: req.query.height,
+        filePath: req.query.filePath,
+        timeout: req.query.timeout,
+        renderKey: req.query.renderKey,
+        domain: req.query.domain,
+        timezone: req.query.timezone,
+        encoding: req.query.encoding,
+        deviceScaleFactor: req.query.deviceScaleFactor,
+        headers: headers,
+      };
+  
+      this.log.debug('Render request received', 'url', options.url);
+      req.on('close', (err) => {
+        this.log.debug('Connection closed', 'url', options.url, 'error', err);
+      });
+      result = await this.browser.render(options);
+    }
 
     res.sendFile(result.filePath, (err) => {
       if (err) {
@@ -270,3 +279,5 @@ export class HttpServer {
     });
   };
 }
+
+const isPdfRequest = (q: AllRenderOptions): q is PdfRenderOptions => 'pdf' in q;
