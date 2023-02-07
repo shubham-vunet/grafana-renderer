@@ -7,7 +7,7 @@ import * as net from 'net';
 import * as path from 'path';
 import * as promClient from 'prom-client';
 
-import { HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
+import { AllRenderOptions, HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
 import { Browser, createBrowser } from '../browser';
 import { asyncMiddleware, authTokenMiddleware, trustedUrlMiddleware } from './middlewares';
 
@@ -69,7 +69,6 @@ export class HttpServer {
     // Set up /render endpoints
     this.app.get('/render', asyncMiddleware(this.render));
     this.app.get('/render/csv', asyncMiddleware(this.renderCSV));
-    this.app.get('/render/csv', asyncMiddleware(this.renderPDF));
     this.app.get('/render/version', (req: express.Request, res: express.Response) => {
       const pluginInfo = require('../../plugin.json');
       res.send({ version: pluginInfo.info.version });
@@ -143,7 +142,9 @@ export class HttpServer {
     await this.browser.start();
   }
 
-  render = async (req: express.Request<any, any, any, AllRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
+  render = async (req: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>, res: express.Response, next: express.NextFunction) => isPdfRequest(req) ? await this.renderPDF(req, res, next) : await this.renderPng(req, res, next);
+
+  renderPng = async (req: express.Request<any, any, any, ImageRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
     if (!req.query.url) {
       throw boom.badRequest('Missing url parameter');
     }
@@ -154,33 +155,26 @@ export class HttpServer {
       headers['Accept-Language'] = (req.headers['Accept-Language'] as string[]).join(';');
     }
 
-    let result: RenderResponse;
+    const options: ImageRenderOptions = {
+      url: req.query.url,
+      width: req.query.width,
+      height: req.query.height,
+      filePath: req.query.filePath,
+      timeout: req.query.timeout,
+      renderKey: req.query.renderKey,
+      domain: req.query.domain,
+      timezone: req.query.timezone,
+      encoding: req.query.encoding,
+      deviceScaleFactor: req.query.deviceScaleFactor,
+      headers: headers,
+    };
 
-    this.log.debug('This is PDF Request');
-    if (isPdfRequest(req.query)) {
-      result = { filePath: '' }
-      this.log.debug('THIS is PDF Request');
-    } else {
-      const options: ImageRenderOptions = {
-        url: req.query.url,
-        width: req.query.width,
-        height: req.query.height,
-        filePath: req.query.filePath,
-        timeout: req.query.timeout,
-        renderKey: req.query.renderKey,
-        domain: req.query.domain,
-        timezone: req.query.timezone,
-        encoding: req.query.encoding,
-        deviceScaleFactor: req.query.deviceScaleFactor,
-        headers: headers,
-      };
+    this.log.debug('Render request received', 'url', options.url);
+    req.on('close', (err) => {
+      this.log.debug('Connection closed', 'url', options.url, 'error', err);
+    });
 
-      this.log.debug('Render request received', 'url', options.url);
-      req.on('close', (err) => {
-        this.log.debug('Connection closed', 'url', options.url, 'error', err);
-      });
-      result = await this.browser.render(options);
-    }
+    const result = await this.browser.render(options);
 
     res.sendFile(result.filePath, (err) => {
       if (err) {
@@ -307,7 +301,7 @@ export class HttpServer {
       headers: headers,
     };
 
-    const result = await this.config.;
+    const result = { fileName: undefined, filePath: '/tmp/abc.pdf' };
 
     if (result.fileName) {
       res.setHeader('Content-Disposition', contentDisposition(result.fileName));
@@ -329,3 +323,5 @@ export class HttpServer {
     });
   }
 }
+
+const isPdfRequest = (q: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>): q is express.Request<any, any, any, PdfRenderOptions, any> => 'pdf' in q.query;
