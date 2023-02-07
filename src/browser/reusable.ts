@@ -1,6 +1,8 @@
 import * as puppeteer from 'puppeteer';
+
+import { Browser, Metrics, RenderCSVResponse, RenderResponse } from './browser';
 import { ImageRenderOptions, RenderOptions } from '../types';
-import { Browser, RenderResponse, RenderCSVResponse, Metrics } from './browser';
+
 import { Logger } from '../logger';
 import { RenderingConfig } from '../config';
 
@@ -17,6 +19,10 @@ export class ReusableBrowser extends Browser {
   }
 
   async render(options: ImageRenderOptions): Promise<RenderResponse> {
+
+    this.log.debug('Rendering for Data ' + JSON.stringify(options));
+
+    
     let context: puppeteer.BrowserContext | undefined;
     let page: puppeteer.Page | undefined;
 

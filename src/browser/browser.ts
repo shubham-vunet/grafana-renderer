@@ -1,14 +1,16 @@
-import * as os from 'os';
-import * as uniqueFilename from 'unique-filename';
-import * as puppeteer from 'puppeteer';
-import * as chokidar from 'chokidar';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as promClient from 'prom-client';
 import * as Jimp from 'jimp';
+import * as chokidar from 'chokidar';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as promClient from 'prom-client';
+import * as puppeteer from 'puppeteer';
+import * as uniqueFilename from 'unique-filename';
+
+import { ImageRenderOptions, RenderOptions } from '../types';
+
 import { Logger } from '../logger';
 import { RenderingConfig } from '../config';
-import { ImageRenderOptions, RenderOptions } from '../types';
 
 export interface Metrics {
   durationHistogram: promClient.Histogram;
@@ -248,8 +250,10 @@ export class Browser {
       }, 'newPage');
 
       this.addPageListeners(page);
+      
 
       return await this.takeScreenshot(page, options);
+
     } finally {
       if (page) {
         this.removePageListeners(page);
@@ -283,7 +287,7 @@ export class Browser {
             options.deviceScaleFactor
           );
         }
-
+        
         await this.setViewport(page, options);
         await this.preparePage(page, options);
         await this.setTimezone(page, options);
