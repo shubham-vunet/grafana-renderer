@@ -28,7 +28,6 @@ export interface ImageRenderOptions extends RenderOptions {
 
 export interface PdfRenderOptions extends RenderOptions {
   template: string;
-  pdf: 'true' | true;
+  uid: string;
+  panelId: string;
 }
-
-export type AllRenderOptions = PdfRenderOptions | ImageRenderOptions;

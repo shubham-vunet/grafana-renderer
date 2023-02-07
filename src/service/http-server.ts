@@ -7,7 +7,7 @@ import * as net from 'net';
 import * as path from 'path';
 import * as promClient from 'prom-client';
 
-import { AllRenderOptions, HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
+import { HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
 import { Browser, createBrowser } from '../browser';
 import { asyncMiddleware, authTokenMiddleware, trustedUrlMiddleware } from './middlewares';
 
@@ -32,7 +32,7 @@ export class HttpServer {
   app: express.Express;
   browser: Browser;
 
-  constructor(private config: ServiceConfig, private log: Logger, private sanitizer: Sanitizer) {}
+  constructor(private config: ServiceConfig, private log: Logger, private sanitizer: Sanitizer) { }
 
   async start() {
     this.app = express();
@@ -69,6 +69,7 @@ export class HttpServer {
     // Set up /render endpoints
     this.app.get('/render', asyncMiddleware(this.render));
     this.app.get('/render/csv', asyncMiddleware(this.renderCSV));
+    this.app.get('/render/csv', asyncMiddleware(this.renderPDF));
     this.app.get('/render/version', (req: express.Request, res: express.Response) => {
       const pluginInfo = require('../../plugin.json');
       res.send({ version: pluginInfo.info.version });
@@ -154,10 +155,12 @@ export class HttpServer {
     }
 
     let result: RenderResponse;
-    
-    if(isPdfRequest(req.query)) {
+
+    this.log.debug('This is PDF Request');
+    if (isPdfRequest(req.query)) {
       result = { filePath: '' }
-    }else{
+      this.log.debug('THIS is PDF Request');
+    } else {
       const options: ImageRenderOptions = {
         url: req.query.url,
         width: req.query.width,
@@ -171,7 +174,7 @@ export class HttpServer {
         deviceScaleFactor: req.query.deviceScaleFactor,
         headers: headers,
       };
-  
+
       this.log.debug('Render request received', 'url', options.url);
       req.on('close', (err) => {
         this.log.debug('Connection closed', 'url', options.url, 'error', err);
@@ -278,6 +281,51 @@ export class HttpServer {
       }
     });
   };
-}
 
-const isPdfRequest = (q: AllRenderOptions): q is PdfRenderOptions => 'pdf' in q;
+  renderPDF = async (req: express.Request<any, any, any, PdfRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
+    if (!req.query.url) {
+      throw boom.badRequest('Missing url parameter');
+    }
+
+    const headers: HTTPHeaders = {};
+
+    if (req.headers['Accept-Language']) {
+      headers['Accept-Language'] = (req.headers['Accept-Language'] as string[]).join(';');
+    }
+
+    const options: PdfRenderOptions = {
+      url: req.query.url,
+      filePath: req.query.filePath,
+      timeout: req.query.timeout,
+      renderKey: req.query.renderKey,
+      domain: req.query.domain,
+      timezone: req.query.timezone,
+      encoding: req.query.encoding,
+      uid: req.query.uid,
+      panelId: req.query.panelId,
+      template: req.query.template,
+      headers: headers,
+    };
+
+    const result = await this.config.;
+
+    if (result.fileName) {
+      res.setHeader('Content-Disposition', contentDisposition(result.fileName));
+    }
+    res.sendFile(result.filePath, (err) => {
+      if (err) {
+        next(err);
+      } else {
+        try {
+          this.log.debug('Deleting temporary file', 'file', result.filePath);
+          fs.unlinkSync(result.filePath);
+          if (!options.filePath) {
+            fs.rmdirSync(path.dirname(result.filePath));
+          }
+        } catch (e) {
+          this.log.error('Failed to delete temporary file', 'file', result.filePath);
+        }
+      }
+    });
+  }
+}
