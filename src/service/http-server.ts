@@ -8,8 +8,8 @@ import * as path from 'path';
 import * as promClient from 'prom-client';
 import * as uniqueFilename from 'unique-filename';
 
-import { AllRenderOptions, HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
 import { Browser, createBrowser } from '../browser';
+import { HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
 import { asyncMiddleware, authTokenMiddleware, trustedUrlMiddleware } from './middlewares';
 
 import { Logger } from '../logger';
@@ -37,7 +37,7 @@ export class HttpServer {
   app: express.Express;
   browser: Browser;
 
-  constructor(private config: ServiceConfig, private log: Logger, private sanitizer: Sanitizer) { }
+  constructor(private config: ServiceConfig, private log: Logger, private sanitizer: Sanitizer) {}
 
   async start() {
     this.app = express();
@@ -147,7 +147,11 @@ export class HttpServer {
     await this.browser.start();
   }
 
-  render = async (req: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>, res: express.Response, next: express.NextFunction) => isPdfRequest(req) ? await this.renderPDF(req, res, next) : await this.renderPng(req, res, next);
+  render = async (
+    req: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>,
+    res: express.Response,
+    next: express.NextFunction
+  ) => (isPdfRequest(req) ? await this.renderPDF(req, res, next) : await this.renderPng(req, res, next));
 
   renderPng = async (req: express.Request<any, any, any, ImageRenderOptions, any>, res: express.Response, next: express.NextFunction) => {
     if (!req.query.url) {
@@ -309,18 +313,8 @@ export class HttpServer {
     const pQuery = queryParse(pUrl.query ?? '');
     try {
       const filePath = uniqueFilename(tmpdir()) + '.pdf';
-      // const file = fs.createWriteStream(filePath);
-      // const request = get(`https://localhost:8686/api/v5/report/${options.uid}`, function (response) {
-      //   response.pipe(file);
 
-      //   // after download completed close filestream
-      //   file.on("finish", () => {
-      //     file.close();
-      //     console.log("Download Completed");
-      //   });
-      // });
-
-      await downloadFile(`http://localhost:8686/api/v5/report/${pQuery['uid']}?renderKey=${options.renderKey}`, filePath);
+      await downloadFile(this.config.rendering.reporterUrl + `/api/v5/report/${pQuery['uid']}?renderKey=${options.renderKey}`, filePath);
 
       const result = { fileName: undefined, filePath };
 
@@ -343,39 +337,36 @@ export class HttpServer {
         }
       });
     } finally {
-
     }
-  }
+  };
 }
 
-const isPdfRequest = (q: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>): q is express.Request<any, any, any, PdfRenderOptions, any> => q.query.url.includes('pdf');
+const isPdfRequest = (
+  q: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>
+): q is express.Request<any, any, any, PdfRenderOptions, any> => q.query.url.includes('pdf');
 
 async function downloadFile(url, targetFile) {
   return await new Promise((resolve, reject) => {
-    get(url, response => {
-      const code = response.statusCode ?? 0
+    get(url, (response) => {
+      const code = response.statusCode ?? 0;
 
       if (code >= 400) {
-        return reject(new Error(response.statusMessage))
+        return reject(new Error(response.statusMessage));
       }
 
       // handle redirects
       if (code > 300 && code < 400 && !!response.headers.location) {
-        return resolve(
-          downloadFile(response.headers.location, targetFile)
-        )
+        return resolve(downloadFile(response.headers.location, targetFile));
       }
 
       // save the file to disk
-      const fileWriter = fs
-        .createWriteStream(targetFile)
-        .on('finish', () => {
-          resolve({})
-        })
+      const fileWriter = fs.createWriteStream(targetFile).on('finish', () => {
+        resolve({});
+      });
 
-      response.pipe(fileWriter)
-    }).on('error', error => {
-      reject(error)
-    })
-  })
+      response.pipe(fileWriter);
+    }).on('error', (error) => {
+      reject(error);
+    });
+  });
 }

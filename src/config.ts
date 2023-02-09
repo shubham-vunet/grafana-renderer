@@ -36,6 +36,7 @@ export interface RenderingConfig {
   headed?: boolean;
   networkConditions?: NetworkConditions;
   emulateNetworkConditions: boolean;
+  reporterUrl: string;
 }
 
 export interface MetricsConfig {
@@ -106,6 +107,7 @@ const defaultRenderingConfig: RenderingConfig = {
   verboseLogging: false,
   dumpio: false,
   timingMetrics: false,
+  reporterUrl: 'http://localhost:8686',
 };
 
 export const defaultServiceConfig: ServiceConfig = {

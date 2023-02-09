@@ -1,13 +1,15 @@
+import * as _ from 'lodash';
+import * as minimist from 'minimist';
 import * as path from 'path';
 import * as puppeteer from 'puppeteer';
-import * as _ from 'lodash';
-import { RenderGRPCPluginV2 } from './plugin/v2/grpc_plugin';
-import { HttpServer } from './service/http-server';
+
 import { ConsoleLogger, PluginLogger } from './logger';
-import * as minimist from 'minimist';
-import { defaultPluginConfig, defaultServiceConfig, readJSONFileSync, PluginConfig, ServiceConfig } from './config';
-import { serve } from './node-plugin';
+import { PluginConfig, ServiceConfig, defaultPluginConfig, defaultServiceConfig, readJSONFileSync } from './config';
+
+import { HttpServer } from './service/http-server';
+import { RenderGRPCPluginV2 } from './plugin/v2/grpc_plugin';
 import { createSanitizer } from './sanitizer/Sanitizer';
+import { serve } from './node-plugin';
 
 const chromeFolderPrefix = 'chrome-';
 
@@ -154,6 +156,10 @@ function populateServiceConfigFromEnv(config: ServiceConfig, env: NodeJS.Process
 
   if (env['RENDERING_VIEWPORT_PAGE_ZOOM_LEVEL']) {
     config.rendering.pageZoomLevel = parseFloat(env['RENDERING_VIEWPORT_PAGE_ZOOM_LEVEL'] as string);
+  }
+
+  if (env['RENDERING_REPORTER_URL']) {
+    config.rendering.reporterUrl = env['RENDERING_REPORTER_URL'];
   }
 
   if (env['RENDERING_ARGS']) {

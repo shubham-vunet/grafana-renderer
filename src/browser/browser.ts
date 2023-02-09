@@ -218,8 +218,8 @@ export class Browser {
         heights.dashboard.client,
         scrollDivSelector
       );
-      
-      await new Promise(executor => setTimeout(executor, scrollDelay));
+
+      await new Promise((executor) => setTimeout(executor, scrollDelay));
     }
 
     await page.evaluate((scrollDivSelector) => {
@@ -250,10 +250,8 @@ export class Browser {
       }, 'newPage');
 
       this.addPageListeners(page);
-      
 
       return await this.takeScreenshot(page, options);
-
     } finally {
       if (page) {
         this.removePageListeners(page);
@@ -287,7 +285,7 @@ export class Browser {
             options.deviceScaleFactor
           );
         }
-        
+
         await this.setViewport(page, options);
         await this.preparePage(page, options);
         await this.setTimezone(page, options);
@@ -529,7 +527,7 @@ export class Browser {
 
     const loc = msg.location();
     if (msgType === 'error' && msg.text() !== 'JSHandle@object') {
-        this.log.error('Browser console error', 'msg', msg.text(), 'url', loc.url, 'line', loc.lineNumber, 'column', loc.columnNumber);
+      this.log.error('Browser console error', 'msg', msg.text(), 'url', loc.url, 'line', loc.lineNumber, 'column', loc.columnNumber);
       return;
     }
 

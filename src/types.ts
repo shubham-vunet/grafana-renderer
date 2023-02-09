@@ -31,5 +31,3 @@ export interface PdfRenderOptions extends RenderOptions {
   uid: string;
   panelId: string;
 }
-
-export type AllRenderOptions = ImageRenderOptions | PdfRenderOptions;

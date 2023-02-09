@@ -19,10 +19,8 @@ export class ReusableBrowser extends Browser {
   }
 
   async render(options: ImageRenderOptions): Promise<RenderResponse> {
-
     this.log.debug('Rendering for Data ' + JSON.stringify(options));
 
-    
     let context: puppeteer.BrowserContext | undefined;
     let page: puppeteer.Page | undefined;
 
