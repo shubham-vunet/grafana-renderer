@@ -6,6 +6,7 @@ import * as multer from 'multer';
 import * as net from 'net';
 import * as path from 'path';
 import * as promClient from 'prom-client';
+import * as uniqueFilename from 'unique-filename';
 
 import { AllRenderOptions, HTTPHeaders, ImageRenderOptions, PdfRenderOptions, RenderOptions } from '../types';
 import { Browser, createBrowser } from '../browser';
@@ -15,8 +16,12 @@ import { Logger } from '../logger';
 import { RenderResponse } from '../browser/browser';
 import { Sanitizer } from '../sanitizer/Sanitizer';
 import { ServiceConfig } from '../config';
+import { get } from 'node:http';
 import { isSanitizeRequest } from '../sanitizer/types';
+import { parse } from 'url';
+import { parse as queryParse } from 'querystring';
 import { setupHttpServerMetrics } from './metrics';
+import { tmpdir } from 'os';
 
 import express = require('express');
 import morgan = require('morgan');
@@ -300,28 +305,77 @@ export class HttpServer {
       template: req.query.template,
       headers: headers,
     };
+    const pUrl = parse(req.query.url);
+    const pQuery = queryParse(pUrl.query ?? '');
+    try {
+      const filePath = uniqueFilename(tmpdir()) + '.pdf';
+      // const file = fs.createWriteStream(filePath);
+      // const request = get(`https://localhost:8686/api/v5/report/${options.uid}`, function (response) {
+      //   response.pipe(file);
 
-    const result = { fileName: undefined, filePath: '/tmp/abc.pdf' };
+      //   // after download completed close filestream
+      //   file.on("finish", () => {
+      //     file.close();
+      //     console.log("Download Completed");
+      //   });
+      // });
 
-    if (result.fileName) {
-      res.setHeader('Content-Disposition', contentDisposition(result.fileName));
-    }
-    res.sendFile(result.filePath, (err) => {
-      if (err) {
-        next(err);
-      } else {
-        try {
-          this.log.debug('Deleting temporary file', 'file', result.filePath);
-          fs.unlinkSync(result.filePath);
-          if (!options.filePath) {
-            fs.rmdirSync(path.dirname(result.filePath));
-          }
-        } catch (e) {
-          this.log.error('Failed to delete temporary file', 'file', result.filePath);
-        }
+      await downloadFile(`http://localhost:8686/api/v5/report/${pQuery['uid']}?renderKey=${options.renderKey}`, filePath);
+
+      const result = { fileName: undefined, filePath };
+
+      if (result.fileName) {
+        res.setHeader('Content-Disposition', contentDisposition(result.fileName));
       }
-    });
+      res.sendFile(result.filePath, (err) => {
+        if (err) {
+          next(err);
+        } else {
+          try {
+            this.log.debug('Deleting temporary file', 'file', result.filePath);
+            fs.unlinkSync(result.filePath);
+            if (!options.filePath) {
+              fs.rmdirSync(path.dirname(result.filePath));
+            }
+          } catch (e) {
+            this.log.error('Failed to delete temporary file', 'file', result.filePath);
+          }
+        }
+      });
+    } finally {
+
+    }
   }
 }
 
-const isPdfRequest = (q: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>): q is express.Request<any, any, any, PdfRenderOptions, any> => 'pdf' in q.query;
+const isPdfRequest = (q: express.Request<any, any, any, ImageRenderOptions, any> | express.Request<any, any, any, PdfRenderOptions, any>): q is express.Request<any, any, any, PdfRenderOptions, any> => q.query.url.includes('pdf');
+
+async function downloadFile(url, targetFile) {
+  return await new Promise((resolve, reject) => {
+    get(url, response => {
+      const code = response.statusCode ?? 0
+
+      if (code >= 400) {
+        return reject(new Error(response.statusMessage))
+      }
+
+      // handle redirects
+      if (code > 300 && code < 400 && !!response.headers.location) {
+        return resolve(
+          downloadFile(response.headers.location, targetFile)
+        )
+      }
+
+      // save the file to disk
+      const fileWriter = fs
+        .createWriteStream(targetFile)
+        .on('finish', () => {
+          resolve({})
+        })
+
+      response.pipe(fileWriter)
+    }).on('error', error => {
+      reject(error)
+    })
+  })
+}

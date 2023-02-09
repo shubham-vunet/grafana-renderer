@@ -1,5 +1,7 @@
 import express = require('express');
+
 import * as boom from '@hapi/boom';
+
 import { ImageRenderOptions } from '../types';
 import { SecurityConfig } from '../config';
 
