@@ -1,25 +1,27 @@
 import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 import * as promClient from 'prom-client';
-import { GrpcPlugin } from '../../node-plugin';
-import { Logger } from '../../logger';
-import { PluginConfig, SecurityConfig } from '../../config';
-import { createBrowser, Browser } from '../../browser';
-import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../../types';
+import * as protoLoader from '@grpc/proto-loader';
+
+import { Browser, createBrowser } from '../../browser';
 import {
-  RenderRequest,
-  RenderResponse,
-  RenderCSVRequest,
-  RenderCSVResponse,
   CheckHealthRequest,
   CheckHealthResponse,
   CollectMetricsRequest,
   CollectMetricsResponse,
-  HealthStatus,
   GRPCSanitizeRequest,
   GRPCSanitizeResponse,
+  HealthStatus,
+  RenderCSVRequest,
+  RenderCSVResponse,
+  RenderRequest,
+  RenderResponse,
 } from './types';
-import { createSanitizer, Sanitizer } from '../../sanitizer/Sanitizer';
+import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../../types';
+import { PluginConfig, SecurityConfig } from '../../config';
+import { Sanitizer, createSanitizer } from '../../sanitizer/Sanitizer';
+
+import { GrpcPlugin } from '../../node-plugin';
+import { Logger } from '../../logger';
 import { SanitizeRequest } from '../../sanitizer/types';
 import { Status } from '@grpc/grpc-js/build/src/constants';
 
