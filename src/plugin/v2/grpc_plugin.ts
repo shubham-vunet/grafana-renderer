@@ -1,12 +1,8 @@
 import * as grpc from '@grpc/grpc-js';
 import * as promClient from 'prom-client';
 import * as protoLoader from '@grpc/proto-loader';
-import * as promClient from 'prom-client';
-import { GrpcPlugin } from '../../node-plugin';
-import { Logger } from '../../logger';
-import { PluginConfig, SecurityConfig, isAuthTokenValid } from '../../config';
-import { createBrowser, Browser } from '../../browser';
-import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../../types';
+
+import { Browser, createBrowser } from '../../browser';
 import {
   CheckHealthRequest,
   CheckHealthResponse,
@@ -21,7 +17,7 @@ import {
   RenderResponse,
 } from './types';
 import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../../types';
-import { PluginConfig, SecurityConfig } from '../../config';
+import { PluginConfig, SecurityConfig, isAuthTokenValid } from '../../config';
 import { Sanitizer, createSanitizer } from '../../sanitizer/Sanitizer';
 
 import { GrpcPlugin } from '../../node-plugin';
@@ -99,7 +95,7 @@ export class RenderGRPCPluginV2 implements GrpcPlugin {
 class PluginGRPCServer {
   private browserVersion: string | undefined;
 
-  constructor(private browser: Browser, private log: Logger, private sanitizer: Sanitizer, private securityCfg: SecurityConfig) { }
+  constructor(private browser: Browser, private log: Logger, private sanitizer: Sanitizer, private securityCfg: SecurityConfig) {}
 
   async start(browserVersion?: string) {
     this.browserVersion = browserVersion;
