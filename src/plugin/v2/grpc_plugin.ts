@@ -1,8 +1,12 @@
 import * as grpc from '@grpc/grpc-js';
 import * as promClient from 'prom-client';
 import * as protoLoader from '@grpc/proto-loader';
-
-import { Browser, createBrowser } from '../../browser';
+import * as promClient from 'prom-client';
+import { GrpcPlugin } from '../../node-plugin';
+import { Logger } from '../../logger';
+import { PluginConfig, SecurityConfig, isAuthTokenValid } from '../../config';
+import { createBrowser, Browser } from '../../browser';
+import { HTTPHeaders, ImageRenderOptions, RenderOptions } from '../../types';
 import {
   CheckHealthRequest,
   CheckHealthResponse,
@@ -95,7 +99,7 @@ export class RenderGRPCPluginV2 implements GrpcPlugin {
 class PluginGRPCServer {
   private browserVersion: string | undefined;
 
-  constructor(private browser: Browser, private log: Logger, private sanitizer: Sanitizer, private securityCfg: SecurityConfig) {}
+  constructor(private browser: Browser, private log: Logger, private sanitizer: Sanitizer, private securityCfg: SecurityConfig) { }
 
   async start(browserVersion?: string) {
     this.browserVersion = browserVersion;
@@ -110,8 +114,7 @@ class PluginGRPCServer {
       return callback({ code: Status.INVALID_ARGUMENT, details: 'Request cannot be null' });
     }
 
-    const configToken = this.securityCfg.authToken || '';
-    if (!req.authToken || req.authToken !== configToken) {
+    if (!isAuthTokenValid(this.securityCfg, req.authToken)) {
       return callback({ code: Status.UNAUTHENTICATED, details: 'Unauthorized request' });
     }
 
@@ -160,8 +163,7 @@ class PluginGRPCServer {
       return callback({ code: Status.INVALID_ARGUMENT, details: 'Request cannot be null' });
     }
 
-    const configToken = this.securityCfg.authToken || '';
-    if (!req.authToken || req.authToken !== configToken) {
+    if (!isAuthTokenValid(this.securityCfg, req.authToken)) {
       return callback({ code: Status.UNAUTHENTICATED, details: 'Unauthorized request' });
     }
 
@@ -219,8 +221,7 @@ class PluginGRPCServer {
   async sanitize(call: grpc.ServerUnaryCall<GRPCSanitizeRequest, any>, callback: grpc.sendUnaryData<GRPCSanitizeResponse>) {
     const grpcReq = call.request;
 
-    const configToken = this.securityCfg.authToken || '';
-    if (!grpcReq.authToken || grpcReq.authToken !== configToken) {
+    if (!isAuthTokenValid(this.securityCfg, grpcReq.authToken)) {
       return callback({ code: Status.UNAUTHENTICATED, details: 'Unauthorized request' });
     }
 
@@ -326,7 +327,8 @@ const populateConfigFromEnv = (config: PluginConfig) => {
   }
 
   if (env['GF_PLUGIN_AUTH_TOKEN']) {
-    config.plugin.security.authToken = env['GF_PLUGIN_AUTH_TOKEN'];
+    const authToken = env['GF_PLUGIN_AUTH_TOKEN'] as string;
+    config.plugin.security.authToken = authToken.includes(' ') ? authToken.split(' ') : authToken;
   }
 };
 

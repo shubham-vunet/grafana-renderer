@@ -1,3 +1,17 @@
+## 3.7.1 (2023-05-15)
+- Docker: remove alpine edge repo [#413](https://github.com/grafana/grafana-image-renderer/pull/413), [sozercan](https://github.com/sozercan)
+- Bump yaml from 2.1.1 to 2.2.2 [#421](https://github.com/grafana/grafana-image-renderer/pull/421), [dependabot[bot]](https://github.com/apps/dependabot)
+
+## 3.7.0 (2023-04-17)
+- Security: can set array of auth tokens [#417](https://github.com/grafana/grafana-image-renderer/pull/417), [AgnesToulet](https://github.com/AgnesToulet)
+- Bump pkg from 5.8.0 to 5.8.1 [#415](https://github.com/grafana/grafana-image-renderer/pull/415), [AgnesToulet](https://github.com/AgnesToulet)
+- Bump jimp from 0.16.1 to 0.16.13 [#406](https://github.com/grafana/grafana-image-renderer/pull/406), [AgnesToulet](https://github.com/AgnesToulet)
+
+## 3.6.4 (2023-02-10)
+
+- Add Snyk workflow [#402](https://github.com/grafana/grafana-image-renderer/pull/402), [SadFaceSmith](https://github.com/SadFaceSmith)
+- Fix null error [#403](https://github.com/grafana/grafana-image-renderer/pull/403), [spinillos](https://github.com/spinillos)
+
 ## 3.6.3 (2023-01-11)
 
 - Add support for page zooming option [#387](https://github.com/grafana/grafana-image-renderer/pull/387), [kaffarell](https://github.com/kaffarell)
