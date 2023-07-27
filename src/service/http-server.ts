@@ -305,6 +305,9 @@ export class HttpServer {
       timezone: req.query.timezone,
       encoding: req.query.encoding,
       headers: headers,
+      panelId: req.query.panelId,
+      template: req.query.template,
+      uid: req.query.uid,
     };
     const pUrl = parse(req.query.url);
     const pQuery = new URLSearchParams(pUrl.query ?? '');
@@ -312,13 +315,13 @@ export class HttpServer {
       const filePath = uniqueFilename(tmpdir()) + '.pdf';
       const params = new URLSearchParams({
         renderKey: options.renderKey,
-        timezone: pQuery.get('timezone') ?? '', 
-        uid: pQuery.get('uid') ?? '', 
-        panelId: pQuery.get('panelId')??'', 
-        template: pQuery.get('template')??'', 
-        orgId: pQuery.get('orgId')??''
+        timezone: pQuery.get('timezone') ?? '',
+        uid: pQuery.get('uid') ?? '',
+        panelId: pQuery.get('panelId') ?? '',
+        template: pQuery.get('template') ?? '',
+        orgId: pQuery.get('orgId') ?? '',
       });
-      
+
       await downloadFile(this.config.rendering.reporterUrl + `/api/v5/report/${params.get('uid')}?${params.toString()}`, filePath);
 
       const result = { fileName: undefined, filePath };
